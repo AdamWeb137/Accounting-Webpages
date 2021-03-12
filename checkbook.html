@@ -1,0 +1,425 @@
+<html>
+    <head>
+        <title>Checkbook</title>
+        <style>
+            body {
+                background-image:linear-gradient(rgb(255, 217, 217),white,rgb(255, 217, 217));
+                font-family:Arial, Helvetica, sans-serif;
+            }
+
+            #checkbook {
+                margin-left:auto;
+                margin-right:auto;
+            }
+
+            th {
+                border: 2px solid black;
+            }
+
+            table{
+                border-collapse: collapse;
+                border:3px solid black;
+                background-color: white;
+                margin-left:auto;
+                margin-right:auto;
+            }
+
+            td {
+                border:1px solid black;
+            }
+
+            #new_trans, #edit_trans{
+                margin-left: auto;
+                margin-right: auto;
+                background-color: rgb(255,255,255,0.5);
+                width:1300px;
+                padding: 10px 10px 10px 10px;
+                border:3px dotted black;
+                margin-top:10px;
+            }
+
+            .selected{
+                background-color: rgb(255, 59, 59);
+            }
+
+            #checkbook tr:hover:not(#toprow) {
+                background-color: rgb(255, 162, 162);
+            }
+        </style>
+    </head>
+    <body>
+        <h1 align="center">Checkbook</h1>
+        <table id="checkbook"></table>
+
+        <div id="new_trans">
+            <p align="center">Add Transaction</p>
+            <table>
+            <tr>
+                <td style="width:200px"><input type="date" id="trans_date" style="width:200px;"></td>
+                <td style="width:400px"><input type="text" id="trans_desc" style="width:330px;"><input type="color" id="trans_color" style="width:65px"></td>
+                <td style="width:200px"><input type="number" id="trans_fee" style="width:200px;" onchange="disable_others('trans_fee')" class="amount_input" min="0"></td>
+                <td style="width:200px"><input type="number" id="trans_deposit" style="width:200px;" onchange="disable_others('trans_deposit')" class="amount_input" min="0"></td>
+                <td style="width:200px"><input type="number" id="trans_balance" style="width:200px;" onchange="disable_others('trans_balance')" class="amount_input"></td>
+            </tr>
+            </table>
+            <br>
+            <center><button onclick="add_trans()">Add Transaction</button></center>
+        </div>
+
+        <div id="edit_trans" style="display: none;">
+            <p align="center">Edit Transaction</p>
+            <table>
+            <tr>
+                <td style="width:200px"><input type="date" id="ed_trans_date" style="width:200px;"></td>
+                <td style="width:400px"><input type="text" id="ed_trans_desc" style="width:330px;"><input type="color" id="ed_trans_color" style="width:65px"></td>
+                <td style="width:200px"><input type="number" id="ed_trans_fee" style="width:200px;" onchange="ed_disable_others('ed_trans_fee')" class="ed_amount_input" min="0"></td>
+                <td style="width:200px"><input type="number" id="ed_trans_deposit" style="width:200px;" onchange="ed_disable_others('ed_trans_deposit')" class="ed_amount_input" min="0"></td>
+                <td style="width:200px"><input type="number" id="ed_trans_balance" style="width:200px;" onchange="ed_disable_others('ed_trans_balance')" class="ed_amount_input"></td>
+            </tr>
+            </table>
+            <br>
+            <center><button onclick="ed_trans()">Edit Transaction</button> | <button onclick="delete_trans()">Delete Transaction</button></center>
+        </div>
+        <br>
+        <center><button onclick="savefile();">Save File</button> | Load File:<input type="file" id="loaded_file" oninput="loadfile();"></center>
+
+        <script>
+            var toprow = `<tr id="toprow">
+                <th style="width:200px">Date</th>
+                <th style="width:400px">Transaction Description</th>
+                <th colspan='2' style="width:200px">Payment Fee</th>
+                <th colspan='2' style="width:200px">Deposit</th>
+                <th colspan='2' style="width:200px">$Balance</th>
+            </tr>`;
+
+            var checkbook = document.getElementById("checkbook");
+            var transactions = [];
+
+            var currentbalance = 0;
+            var balances = [0];
+
+            function date_spelled_out(date){
+                var months = [
+                    "January",
+                    "February",
+                    "March",
+                    "April",
+                    "May",
+                    "June",
+                    "July",
+                    "August",
+                    "September",
+                    "October",
+                    "November",
+                    "December"
+                ];
+
+                var date_arr = date.split("-");
+
+                return `${months[date_arr[1]-1]}  ${date_arr[2]}, ${date_arr[0]}`;
+            }
+
+            function update_checkbook(){
+                checkbook.innerHTML = toprow;
+                currentbalance = 0;
+                balances = [0];
+
+                for(var i = 0; i < transactions.length; i++){
+                    var trans = transactions[i];
+
+                    currentbalance += trans["amount"];
+
+                    balances.push(currentbalance);
+
+                    var row = `<tr id='trans_${i}' onclick="select('trans_${i}');" style="color: ${trans["color"]};">
+                        <td style="width:200px">${date_spelled_out(trans["date"])}</td>
+                        <td style="width:400px">${trans["desc"]}</td>
+                        <td colspan='2' style="width:200px">${(trans["amount"] < 0) ? Math.abs(trans["amount"]).toFixed(2) : ""}</td>
+                        <td colspan='2' style="width:200px">${(trans["amount"] > 0) ? Math.abs(trans["amount"]).toFixed(2) : ""}</td>
+                        <td colspan='2' style="width:200px">${currentbalance.toFixed(2)}</td>
+                    </tr>`;
+
+                    checkbook.innerHTML += row;
+                }
+
+            }
+
+            function add_trans(){
+                var date = document.getElementById("trans_date").value;
+                var desc = document.getElementById("trans_desc").value;
+                var color = document.getElementById("trans_color").value;
+
+                if(date == ""){
+                    alert("Please add a date to the transaction");
+                }
+
+                if(desc == ""){
+                    alert("Please add a description to the transaction");
+                }
+
+                //var fee = Number(document.getElementById("trans_fee").value);
+                if(document.getElementById("trans_fee").value != ""){
+
+                    transactions.push({
+                        "date":date,
+                        "desc":desc,
+                        "amount":-Number(document.getElementById("trans_fee").value),
+                        "type":"fee",
+                        "color":color
+                    });
+
+                }else if(document.getElementById("trans_deposit").value != ""){
+
+                    transactions.push({
+                        "date":date,
+                        "desc":desc,
+                        "amount":Number(document.getElementById("trans_deposit").value),
+                        "type":"deposit",
+                        "color":color
+                    });
+
+                }else if(document.getElementById("trans_balance").value != ""){
+
+                    transactions.push({
+                        "date":date,
+                        "desc":desc,
+                        "amount":(Number(document.getElementById("trans_balance").value)-currentbalance),
+                        "type":"balance",
+                        "color":color
+                    });
+
+                }else{
+                    alert("Please add a value to the transaction");
+                }
+
+                //document.getElementById("trans_date").value = "";
+                document.getElementById("trans_desc").value = "";
+                document.getElementById("trans_color").value = "#000000";
+                document.getElementById("trans_fee").disabled = false;
+                document.getElementById("trans_fee").value = "";
+                document.getElementById("trans_deposit").disabled = false;
+                document.getElementById("trans_deposit").value = "";
+                document.getElementById("trans_balance").disabled = false;
+                document.getElementById("trans_balance").value = "";
+
+                update_checkbook();
+            }
+
+            function disable_others(id){
+                var amount_inputs = document.getElementsByClassName("amount_input");
+
+                for(var i = 0; i < amount_inputs.length; i++){
+                    if(amount_inputs[i].id == id){
+                        amount_inputs[i].disabled = false;
+                        if(amount_inputs[i].value == ''){
+                            for(var j = 0; j < amount_inputs.length; j++){
+                                amount_inputs[j].disabled = false;
+                            }
+                            return;
+                        }
+                    }else{
+                        amount_inputs[i].disabled = true;
+                    }
+                }
+            }
+
+            function ed_disable_others(id){
+                var amount_inputs = document.getElementsByClassName("ed_amount_input");
+
+                for(var i = 0; i < amount_inputs.length; i++){
+                    if(amount_inputs[i].id == id){
+                        amount_inputs[i].disabled = false;
+                        if(amount_inputs[i].value == ''){
+                            for(var j = 0; j < amount_inputs.length; j++){
+                                amount_inputs[j].disabled = false;
+                            }
+                            return;
+                        }
+                    }else{
+                        amount_inputs[i].disabled = true;
+                    }
+                }
+            }
+
+            var selected = null;
+
+            var new_trans = document.getElementById("new_trans");
+            var edit_trans = document.getElementById("edit_trans");
+
+            function select(el_id){
+                var el = document.getElementById(el_id);
+                if(selected == el){
+                    selected.classList.remove("selected");
+                    selected = null;
+
+                    new_trans.style.display = "block";
+                    edit_trans.style.display = "none";
+
+                }else{
+
+                    var red_els = document.getElementsByClassName("selected");
+
+                    for(var i = 0; i < red_els.length; i++){
+                        red_els[i].classList.remove("selected");
+                    }
+
+                    selected = el;
+                    selected.className = "selected";
+
+                    new_trans.style.display = "none";
+                    edit_trans.style.display = "block";
+
+                    var t_id = Number(el_id.split("_")[1]);
+                    var trans = transactions[t_id];
+
+                    document.getElementById("ed_trans_date").value = trans["date"];
+                    document.getElementById("ed_trans_desc").value = trans["desc"];
+                    document.getElementById("ed_trans_color").value = trans["color"];
+                
+                    document.getElementById("ed_trans_fee").disabled = true;
+                    document.getElementById("ed_trans_deposit").disabled = true;
+                    document.getElementById("ed_trans_balance").disabled = true;
+
+                    document.getElementById("ed_trans_fee").value = "";
+                    document.getElementById("ed_trans_deposit").value = "";
+                    document.getElementById("ed_trans_balance").value = "";
+
+                    if(trans["type"] == "fee"){
+                        document.getElementById("ed_trans_fee").disabled = false;
+                        document.getElementById("ed_trans_fee").value = String(-trans["amount"]);
+
+                    }else if(trans["type"] == "deposit"){
+                        document.getElementById("ed_trans_deposit").disabled = false;
+                        document.getElementById("ed_trans_deposit").value = String(trans["amount"]);
+
+                    }else if(trans["type"] == "balance"){
+                        document.getElementById("ed_trans_balance").disabled = false;
+                        document.getElementById("ed_trans_balance").value = String(balances[t_id]+trans["amount"]);
+
+                    }
+                    
+                }
+            }
+
+            function ed_trans(){
+                var date = document.getElementById("ed_trans_date").value;
+                var desc = document.getElementById("ed_trans_desc").value;
+                var color = document.getElementById("ed_trans_color").value;
+
+                var t_id = Number(selected.id.split("_")[1]);
+                var trans = transactions[t_id];
+
+                if(date == ""){
+                    alert("Please add a date to the transaction");
+                }
+
+                if(desc == ""){
+                    alert("Please add a description to the transaction");
+                }
+
+                //var fee = Number(document.getElementById("trans_fee").value);
+                if(document.getElementById("ed_trans_fee").value != ""){
+
+                    transactions[t_id] = {
+                        "date":date,
+                        "desc":desc,
+                        "amount":-Number(document.getElementById("ed_trans_fee").value),
+                        "type":"fee",
+                        "color":color
+                    };
+
+                }else if(document.getElementById("ed_trans_deposit").value != ""){
+
+                    transactions[t_id] = {
+                        "date":date,
+                        "desc":desc,
+                        "amount":Number(document.getElementById("ed_trans_deposit").value),
+                        "type":"deposit",
+                        "color":color
+                    };
+
+                }else if(document.getElementById("ed_trans_balance").value != ""){
+
+                    transactions[t_id] = {
+                        "date":date,
+                        "desc":desc,
+                        "amount":(Number(document.getElementById("ed_trans_balance").value)-balances[t_id]),
+                        "type":"balance",
+                        "color":color
+                    };
+
+                }else{
+                    alert("Please add a value to the transaction");
+                }
+
+                select(selected.id);
+                update_checkbook();
+            }
+
+            function delete_trans(){
+                if(selected != null){
+                    if(confirm("Are you sure you want to delete this transaction?")){
+                        var t_id = Number(selected.id.split("_")[1]);
+                        transactions.splice(t_id,1);
+
+                        select(selected.id);
+                        update_checkbook();
+                    }
+                }
+            }
+
+            function savefile(){
+                var saveblob = new Blob([JSON.stringify(transactions)], {type : 'application/json'});
+                
+                var tmpa = document.createElement("a");
+                tmpa.href = URL.createObjectURL(saveblob);
+                tmpa.download = "checkbook_save.json";
+
+                tmpa.click();
+                tmpa.remove();
+            }
+
+            var freader = new FileReader();
+
+            freader.onloadend = function() {
+                var contents = freader.result;
+                console.log(contents);
+                var json_contents = JSON.parse(contents);
+                try{
+                    transactions = json_contents;
+                    if(selected != null){
+                        select(selected.id);
+                    }
+                    update_checkbook();
+                }catch (e) {
+                    alert("Save file curropted");
+                }
+            }
+
+            freader.onerror = function(){
+                console.log(freader.error);
+            }
+
+            function loadfile(){
+            
+                if(!confirm("Are you sure you want to load? Any unsaved transactions will be lost.")){
+                    return;
+                }
+
+                var loadedfile_el = document.getElementById("loaded_file");
+                if(loadedfile_el.files.length > 0){
+                    var file = loadedfile_el.files[0];
+                    var fname = file.name;
+
+                    if(fname.split(".")[fname.split(".").length-1] == "json"){
+                        freader.readAsText(file);
+                    }else{
+                        alert("Invalid file. File must be JSON");
+                    }
+                }
+            }
+
+            update_checkbook();
+        </script>
+    </body>
+</html>

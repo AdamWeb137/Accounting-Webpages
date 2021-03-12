@@ -1,0 +1,520 @@
+<html>
+    <head>
+        <title>T charts</title>
+        <style>
+            body {
+                background-image:linear-gradient(rgb(217, 255, 217),white,rgb(217, 255, 217));
+                font-family:Arial, Helvetica, sans-serif;
+            }
+
+            #formtable {
+                margin-left:auto;
+                margin-right:auto;
+            }
+
+            #formtable td{
+                border:1px solid black;
+                background-color: white;
+                margin: 10px 10px 10px 10px;
+            }
+
+            #account {
+                margin-left:auto;
+                margin-right: auto;
+            }
+
+            /*#account td{
+                border:3px solid black;
+            }*/
+
+            .ttop:first-child {
+                border-bottom: 2px solid black;
+                text-align: center;
+            }
+
+            .borderright {
+                border-right: 1px solid black;
+                width:300px;
+                text-align: right;
+            }
+
+            .borderleft {
+                border-left: 1px solid black;
+                width:300px;
+                text-align: right;
+            }
+
+            .tchart {
+                margin:10px 10px 10px 10px;
+                background-color: white;
+                border:3px double black;
+                border-collapse: collapse;
+            }
+
+            .borderbottom{
+                border-bottom: 2px solid black;
+            }
+
+            .bordertop{
+                border-top: 2px solid black;
+            }
+
+            .selected {
+                background-color: rgb(95, 255, 95);
+            }
+
+            .tchart tr:hover{
+                background-color: rgb(147, 255, 147);
+            }
+
+            .tform:hover{
+                background-color: white;
+            }
+
+            .tform {
+                border:2px inset black;
+            }
+
+            .sum {
+                margin-left:auto;
+                margin-right:auto;
+                text-align: center;
+                background-color: white;
+            }
+
+        </style>
+    </head>
+    <body>
+        <h1 align="center">T charts</h1>
+        <h3 align="center">Assets = Liabilities + Equity</h3>
+        <table id="account">
+        <tr>
+            <td id="debit_accounts" style="border:2px dotted black;"></td>
+            <td id="credit_accounts" style="border:2px dotted black;"></td>
+        </tr>
+        </table>
+        <br>
+        <table id="formtable">
+        <tr>
+            <td id="add_acc_form">
+                <h2 align="center">Add account</h2>
+                Account Title:<input type="text" name="acc_title" id="acc_title" placeholder="Cash"><br><br>
+                Account Type: <select id="acc_type">
+                    <option value="debit">Asset</option>
+                    <option value="credit">Liability/Equity</option>
+                </select><br><br>
+                <center><button id="add_acc" onclick="create_account();">Create Account</button></center>
+            </td>
+            <td id="edit_acc_form" style="display: none;">
+                <h2 align="center">Edit account</h2>
+                Account Title:<input type="text" name="acc_title" id="ed_acc_title" placeholder="Cash"><br><br>
+                Account Type: <select id="ed_acc_type">
+                    <option value="debit">Asset</option>
+                    <option value="credit">Liability/Equity</option>
+                </select><br><br>
+                <center><button id="ed_acc" onclick="edit_account();">Edit Account</button></center>
+                <hr>
+                <center><button id="delete_acc" onclick="delete_account();">Delete Account</button></center>
+            </td>
+            <td id="add_trans_form">
+                <h2 align="center">Add transaction</h2>
+                <center>Account:<select id="trans_acc"></select><br><br>
+                Type:<select id="trans_type">
+                    <option value="debit">debit</option>
+                    <option value="credit">credit</option>
+                </select><br><br>
+                Date:<input type="date" id="trans_date"><br><br>
+                Amount:<input type="number" id="trans_amount" value="0"><br><br>
+                <button id="add_acc" onclick="new_trans();">Add Transaction</button></center>
+            </td>
+            <td id="edit_trans_form" style="display: none;">
+                <h2 align="center">Edit transaction</h2>
+                <center>Account:<select id="ed_trans_acc"></select><br><br>
+                Type:<select id="ed_trans_type">
+                    <option value="debit">debit</option>
+                    <option value="credit">credit</option>
+                </select><br><br>
+                Date:<input type="date" id="ed_trans_date"><br><br>
+                Amount:<input type="number" id="ed_trans_amount" value="0"><br><br>
+                <button id="ed_trans" onclick="edit_trans();">Edit Transaction</button></center>
+                <hr>
+                <center><button id="delete_trans" onclick="delete_trans();">Delete Transaction</button></center>
+            </td>
+        </tr>
+        </table>
+        <script>
+            var debit_td = document.getElementById("debit_accounts");
+            var credit_td = document.getElementById("credit_accounts");
+
+            // var accounts = [
+            //     {
+            //         "name":"Cash",
+            //         "type":"debit"
+            //     },
+            //     {
+            //         "name":"Supplies",
+            //         "type":"debit"
+            //     },
+            //     {
+            //         "name":"Accs. Pay. - World Supplies",
+            //         "type":"credit"
+            //     },
+            //     {
+            //         "name":"Adam Wood - Capital",
+            //         "type":"credit"
+            //     }
+            // ];
+
+            // var transactions = [
+            //     [
+            //         {
+            //             "type":"debit",
+            //             "amount":1000,
+            //             "date":"2021-02-05"
+            //         },
+            //         {
+            //             "type":"credit",
+            //             "amount":65,
+            //             "date":"2021-02-18"
+            //         },
+            //     ],
+            //     [
+            //         {
+            //             "type":"debit",
+            //             "amount":65,
+            //             "date":"2021-02-18"
+            //         },
+            //     ],
+            //     [],
+            //     [
+            //         {
+            //             "type":"credit",
+            //             "amount":1000,
+            //             "date":"2021-02-05"
+            //         },
+            //     ],
+            // ];
+
+            var accounts = [];
+            var transactions = [];
+
+            var selected = null;
+
+            var add_acc_form = document.getElementById("add_acc_form");
+            var edit_acc_form = document.getElementById("edit_acc_form");
+            var add_trans_form = document.getElementById("add_trans_form");
+            var edit_trans_form = document.getElementById("edit_trans_form");
+
+            function create_account(){
+                var title = document.getElementById("acc_title").value;
+                var type = document.getElementById("acc_type").value;
+
+                if(title != ""){
+
+                    for(var i = 0; i < accounts.length; i++){
+                        if(accounts[i]["name"] == title){
+                            alert("You cannot have two accounts with the same name");
+                            return;
+                        }
+                    }
+
+                    accounts.push({
+                        "name":title,
+                        "type":type
+                    });
+
+                    transactions.push([]);
+
+                    update_trans_form();
+                    update_charts();
+
+                }else{
+                    alert("Please give your account a title.");
+                }
+            }
+
+            function date_spelled_out(date){
+                var months = [
+                    "January",
+                    "February",
+                    "March",
+                    "April",
+                    "May",
+                    "June",
+                    "July",
+                    "August",
+                    "September",
+                    "October",
+                    "November",
+                    "December"
+                ];
+
+                var date_arr = date.split("-");
+
+                return `${months[date_arr[1]-1]}  ${date_arr[2]}, ${date_arr[0]}`;
+            }
+
+            function trans_form(i, side){
+                var form = `
+                    Date:<input type="date" id="new_trans_date_${i}_${side}"> |
+                    Amount:<input type="number" id="new_trans_amount_${i}_${side}"> |
+                    <button onclick="new_trans(${i},'${side}');">Create</button>
+                `;
+                return form;
+            }
+
+            function update_trans_form(){
+                var accs = document.getElementById("trans_acc");
+                var ed_accs = document.getElementById("ed_trans_acc");
+                accs.innerHTML = "";
+                ed_accs.innerHTML = "";
+                for(var i = 0; i < accounts.length; i++){
+                    accs.innerHTML += `<option value='${accounts[i]["name"]}'>${accounts[i]["name"]}</option>`;
+                    ed_accs.innerHTML += `<option value='${accounts[i]["name"]}'>${accounts[i]["name"]}</option>`;
+                }
+            }
+
+            function new_trans(){
+                var acc = document.getElementById("trans_acc").value;
+                var type = document.getElementById("trans_type").value;
+                var date = document.getElementById("trans_date").value;
+                var amount = document.getElementById("trans_amount").value;
+
+                if(accounts.length < 2){
+                    alert("You need at least 2 accounts to add a transaction");
+                }else{
+                    if(date != ""){
+                        if(amount != NaN){
+                            for(var i = 0; i < accounts.length; i++){
+                                if(accounts[i]["name"] == acc){
+                                    transactions[i].push({
+                                        "amount":Number(amount),
+                                        "type":type,
+                                        "date":date
+                                    });
+                                    update_charts();
+                                }
+                            }
+                        }else{
+                            alert("Transaction account not a number");
+                        }
+                    }else{
+                        alert("Please add a date to the transaction");
+                    }
+                }
+            }
+
+            function update_charts(){
+                debit_td.innerHTML = "";
+                credit_td.innerHTML = "";
+
+                debitsum = 0;
+                creditsum = 0;
+
+                for(var i = 0; i < accounts.length; i++){
+                    var acc = accounts[i];
+
+                    var sum = 0;
+
+                    var acc_html = `<td><table class='tchart'><tr class='ttop' onclick="select('acc_${i}');" id='acc_${i}'><td colspan='2' class="borderbottom"><h3>${acc["name"]}</h3></td></tr>`;
+
+                    for(var j = 0; j < transactions[i].length; j++){
+                        var trans = transactions[i][j];
+                        if(trans["type"] == "debit"){
+                            var date = date_spelled_out(trans["date"]);
+                            var amount = trans["amount"];
+
+                            acc_html += `<tr onclick="select('acc_trans_${i}_${j}');" id='acc_trans_${i}_${j}' class="trans"><td class='borderright'>${date} | <b>${amount}</b></td><td class='borderleft'></td></tr>`;
+
+                            sum = sum + (acc['type'] == "debit" ? amount : -amount);
+
+                        }else{
+                            var date = date_spelled_out(trans["date"]);
+                            var amount = trans["amount"];
+
+                            acc_html += `<tr onclick="select('acc_trans_${i}_${j}');" id='acc_trans_${i}_${j}' class="trans"><td class='borderright'></td><td class='borderleft'>${date} | <b>${amount}</b></td></tr>`;
+
+                            sum = sum + (acc['type'] == "debit" ? -amount : amount);
+                        }
+                    }
+
+                    if(acc["type"] == "debit"){
+                        debitsum += sum;
+                    }else{
+                        creditsum += sum;
+                    }
+
+                    acc_html += `<tr><td class='bordertop' colspan='2'><b>Total: ${sum}</b></td></tr></table></td>`;
+
+                    if(acc["type"] == "debit"){
+                        debit_td.innerHTML += acc_html;
+                    }else{
+                        credit_td.innerHTML += acc_html;
+                    }
+                }
+
+                debit_td.innerHTML += `<td><b class='sum' style='color: ${debitsum == creditsum ? "green" : "red"};'>Total: ${debitsum}</b></td>`;
+                credit_td.innerHTML += `<td><b class='sum' style='color: ${debitsum == creditsum ? "green" : "red"};'>Total: ${creditsum}</b></td>`;
+
+            }
+
+
+            function select(el_id){
+                var el = document.getElementById(el_id);
+                if(selected == el){
+
+                    selected = null;
+
+                    edit_acc_form.style.display = "none";
+                    edit_trans_form.style.display = "none";
+
+                    update_trans_form();
+
+                    add_acc_form.style.display = "table-cell";
+                    add_trans_form.style.display = "table-cell";
+
+                }else if(el.className == "ttop"){
+
+                    selected = el;
+
+                    edit_acc_form.style.display = "table-cell";
+                    edit_trans_form.style.display = "none";
+
+                    document.getElementById("ed_acc_title").value = el.firstChild.firstChild.innerHTML;
+
+                    for(var i = 0; i < accounts.length; i++){
+                        if(accounts[i]["name"] == el.firstChild.firstChild.innerHTML){
+                            document.getElementById("ed_acc_type").value = accounts[i]["type"];
+                        }
+                    }
+
+                    add_acc_form.style.display = "none";
+                    add_trans_form.style.display = "table-cell";
+
+                    update_trans_form();
+                }else if(el.className == "trans"){
+
+                    selected = el;
+
+                    edit_acc_form.style.display = "none";
+                    edit_trans_form.style.display = "table-cell";
+
+                    el_id_arr = el_id.split("_");
+
+                    update_trans_form();
+
+                    document.getElementById("ed_trans_acc").value = accounts[Number(el_id_arr[2])]["name"];
+                    document.getElementById("ed_trans_type").value = transactions[Number(el_id_arr[2])][Number(el_id_arr[3])]["type"];
+                    document.getElementById("ed_trans_date").value = transactions[Number(el_id_arr[2])][Number(el_id_arr[3])]["date"];
+                    document.getElementById("ed_trans_amount").value = transactions[Number(el_id_arr[2])][Number(el_id_arr[3])]["amount"];
+
+                    add_acc_form.style.display = "table-cell";
+                    add_trans_form.style.display = "none";
+
+                }
+            }
+
+            function edit_account(){
+                if(selected.className == "ttop"){
+                    var title = document.getElementById("ed_acc_title").value;
+                    var type = document.getElementById("ed_acc_type").value;
+
+                    console.log(type);
+
+                    if(title != ""){
+                        for(var i = 0; i < accounts.length; i++){
+                            if(accounts[i]["name"] == selected.firstChild.firstChild.innerHTML){
+                                accounts[i]["name"] = title;
+                                accounts[i]["type"] = type;
+
+                                update_trans_form();
+                                update_charts();
+                                return;
+                            }
+                        }
+                    }else{
+                        alert("You need an account title");
+                    }
+                }
+            }
+
+            function delete_account(){
+                if(selected.className == "ttop"){
+                    if(confirm("Are you sure you want to delete this account?")){
+                        for(var i = 0; i < accounts.length; i++){
+                            if(accounts[i]["name"] == selected.firstChild.firstChild.innerHTML){
+                                accounts.splice(i,1);
+                                transactions.splice(i,1);
+
+                                select(selected.id);
+
+                                update_trans_form();
+                                update_charts();
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            function edit_trans(){
+                if(selected.className == "trans"){
+                    var acc_i = Number(selected.id.split("_")[2]);
+                    var trans_i = Number(selected.id.split("_")[3]);
+
+                    var acc = document.getElementById("ed_trans_acc").value;
+                    var type = document.getElementById("ed_trans_type").value;
+                    var date = document.getElementById("ed_trans_date").value;
+                    var amount = document.getElementById("ed_trans_amount").value;
+
+                    if(date != ""){
+                        if(amount != NaN){
+                            if(acc == accounts[acc_i]["name"]){
+                                transactions[acc_i][trans_i]["type"] = type;
+                                transactions[acc_i][trans_i]["date"] = date;
+                                transactions[acc_i][trans_i]["amount"] = Number(amount);
+                            }else{
+                                transactions[acc_i].splice(trans_i,1);
+
+                                for(var i = 0; i < accounts.length; i++){
+                                    if(accounts[i]["name"] == acc){
+                                        transactions[i].push({
+                                            "type":type,
+                                            "date":date,
+                                            "amount":Number(amount)
+                                        });
+                                    }
+                                }
+                            }
+
+                            select(selected.id);
+
+                            update_trans_form();
+                            update_charts();
+                        }
+                    }else{
+                        alert("Please add a date to your transaction");
+                    }
+                }
+            }
+
+            function delete_trans(){
+                if(selected.className == "trans"){
+                    var acc_i = Number(selected.id.split("_")[2]);
+                    var trans_i = Number(selected.id.split("_")[3]);
+
+                    if(confirm("Do you really wish to delete this transaction?")){
+                        transactions[acc_i].splice(trans_i,1);
+
+                        select(selected.id);
+                        update_trans_form();
+                        update_charts();
+                    }
+                }
+            }
+
+            update_trans_form();
+            update_charts();
+        </script>
+    </body>
+</html>

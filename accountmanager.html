@@ -1,0 +1,429 @@
+<html>
+    <head>
+        <title>Accounting Equation Journal</title>
+        <style>
+            body {
+                background-image:linear-gradient(rgb(255, 255, 217),white,rgb(255, 255, 217));
+                font-family:Arial, Helvetica, sans-serif;
+            }
+
+            #account {
+                border:1px solid black;
+                margin-left:auto;
+                margin-right:auto;
+                background-color: white;
+            }
+
+            #account td, #account tr{
+                border:solid 1px black;
+            }
+
+            #formtable {
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            #formtable td{
+                border:1px solid black;
+                background-color: white;
+            }
+
+            .sep {
+                background-color: black;
+                border:1px solid black;
+            }
+
+            td {
+                padding-left:5px;
+                padding-right:5px;
+            }
+
+            button {
+                margin-left:auto;
+                margin-right: auto;
+            }
+
+            .row:hover, .col:hover {
+                background-color: rgb(255, 255, 146);
+            }
+
+        </style>
+    </head>
+    <body>
+        <h1 align="center">Accounting Equation Journal Manager</h1>
+        <h3 align="center">Assets = Liabilities + Equity</h3>
+        <table id="account"></table>
+        <br>
+        <table id="formtable">
+        <tr>
+            <td id="make_acc_form">
+                <h2 align="center">Add Account</h2>
+                Title:<input type="text" id="newaccname"><br>
+                Type: <select name="newacctype" id="newacctype">
+                    <option value="debit">Asset</option>
+                    <option value="credit">Liability/Equity</option>
+                </select><br>
+                <hr>
+                <center><button id="newacc" onclick="new_account();">Create New Account</button></center>
+            </td>
+            <td style="display: none;" id="ed_acc_form">
+                <h2 align="center">Edit Account</h2>
+                Title:<input type="text" id="editaccname"><br>
+                Type: <select name="editacctype" id="editacctype">
+                    <option value="debit">Asset</option>
+                    <option value="credit">Liability/Equity</option>
+                </select><br>
+                <hr>
+                <center><button id="editacc" onclick="edit_account();">Edit Account</button></center>
+                <hr>
+                <center><button id="deleteacc" onclick="delete_account();">Delete Account</button></center>
+            </td>
+            <td id="make_trans_form">
+                <h2 align="center">Add Transaction</h2>
+                <table>
+                <tr>
+                    <td>
+                        Account 1:
+                        <select id="acc1"></select><br>
+                        Amount changed: <input type="number" id="trans1">
+                    </td>
+                    <td>
+                        Account 2:
+                        <select id="acc2"></select><br>
+                        Amount changed: <input type="number" id="trans2">
+                    </td>
+                </tr>
+                </table>
+                <hr>
+                <center><button id="newtrans" onclick="new_trans();">Add Transaction</button></center>
+            </td>
+            <td id="ed_trans_form" style="display: none;">
+                <h2 align="center">Edit Transaction</h2>
+                <table>
+                <tr>
+                    <td>
+                        Account 1:
+                        <select id="ed_acc1"></select><br>
+                        Amount changed: <input type="number" id="ed_trans1">
+                    </td>
+                    <td>
+                        Account 2:
+                        <select id="ed_acc2"></select><br>
+                        Amount changed: <input type="number" id="ed_trans2">
+                    </td>
+                </tr>
+                </table>
+                <hr>
+                <center><button id="ed_trans" onclick="ed_trans();">Edit Transaction</button></center>
+                <hr>
+                <center><button id="delete_trans" onclick="delete_trans();">Delete Transaction</button></center>
+            </td>
+        </tr>
+        </table>
+        <script>
+            var accountingequation = "<tr><td>Assets</td><td>=</td><td>Liabilities + Owner's Equity</td></tr>";
+            var acctable = document.getElementById("account");
+
+            var selected = null;
+
+            var accounts = [];
+            var transactions = [];
+
+            function new_account(){
+                var accname = document.getElementById("newaccname").value;
+                if (accname == ""){
+                    alert("Please give your account a title");
+                }else{
+                    for(var i = 0; i < accounts.length; i++){
+                        if(accounts[i]["name"] == accname){
+                            alert("You already have an account with the same name");
+                            return
+                        }
+                    }
+                    var acctype = document.getElementById("newacctype").value;
+                    if(acctype == "credit"){
+                        accounts.push({
+                            "name":accname,
+                            "type":acctype
+                        });
+                    }else{
+                        accounts.unshift({
+                            "name":accname,
+                            "type":acctype
+                        });
+                    }
+
+                    document.getElementById("newaccname").value = "";
+
+                }
+
+                update_trans_select();
+                update_table();
+            }
+
+            function new_trans(){
+                if(accounts.length < 2){
+                    alert("You need at least 2 accounts to add a transaction");
+                }else{
+                    var acc1 = document.getElementById("acc1").value;
+                    var trans1 = Number(document.getElementById("trans1").value);
+
+                    var acc2 = document.getElementById("acc2").value;
+                    var trans2 = Number(document.getElementById("trans2").value);
+
+                    if(acc1 == acc2){
+                        alert("A transaction must affect two DIFFERENT accounts");
+                        return
+                    }
+
+                    transactions.push({
+                        "acc1":acc1,
+                        "trans1":trans1,
+                        "acc2":acc2,
+                        "trans2":trans2
+                    });
+
+                    update_table();
+                }
+            }
+
+            function update_trans_select(){
+
+                
+
+                var acc1 = document.getElementById("acc1");
+                var acc2 = document.getElementById("acc2");
+
+                var ed_acc1 = document.getElementById("ed_acc1");
+                var ed_acc2 = document.getElementById("ed_acc2");
+
+                acc1.innerHTML = "";
+                acc2.innerHTML = "";
+                ed_acc1.innerHTML = "";
+                ed_acc2.innerHTML = "";
+
+                for(var i = 0; i < accounts.length; i++){
+                    acc1.innerHTML += `<option value="${accounts[i]["name"]}">${accounts[i]["name"]}</option>`;
+                    acc2.innerHTML += `<option value="${accounts[i]["name"]}">${accounts[i]["name"]}</option>`;
+                    ed_acc1.innerHTML += `<option value="${accounts[i]["name"]}">${accounts[i]["name"]}</option>`;
+                    ed_acc2.innerHTML += `<option value="${accounts[i]["name"]}">${accounts[i]["name"]}</option>`;
+                }
+            }
+
+            function update_table(){
+
+                acctable.innerHTML = "";
+                var balances = []
+
+                var toprow = "<tr><td></td>";
+                var sline = false;
+                for(var i = 0; i < accounts.length; i++){
+
+                    if (accounts[i]["type"] == "credit" && sline == false){
+                        sline = true;
+                        toprow += "<td class='sep'> </td>";
+                    }
+
+                    toprow += `<td class='col' id='col_${accounts[i]["name"]}' onclick="select('col_${accounts[i]["name"]}');">${accounts[i]["name"]}</td>`;
+                    balances.push(0);
+                }
+                acctable.innerHTML += (toprow + "</tr>");
+
+                acctable.innerHTML += `<tr><td class='sep' colspan="${accounts.length+2}"></td></tr>`;
+
+
+                for(var j = 0; j < transactions.length; j++){
+                    var row = `<tr class='row' id='row_${j+1}' onclick="select('row_${j+1}');"><td>Balance ${j+1}</td>`;
+                    
+                    var trans = transactions[j];
+
+                    var sepline = false;
+
+                    for(var i = 0; i < accounts.length; i++){
+                        if(accounts[i]["name"] == trans["acc1"]){
+                            balances[i] = balances[i] + trans["trans1"];
+                        }
+
+                        if(accounts[i]["name"] == trans["acc2"]){
+                            balances[i] = balances[i] + trans["trans2"];
+                        }
+
+                        if (accounts[i]["type"] == "credit" && sepline == false){
+                            sepline = true;
+                            row += "<td class='sep'> </td>";
+                        }
+
+                        row += `<td>${balances[i]}</td>`;
+                    }
+
+                    row += "</tr>";
+
+                    acctable.innerHTML += row;
+
+                }
+
+            }
+
+            var ed_acc_form = document.getElementById("ed_acc_form");
+            var make_acc_form = document.getElementById("make_acc_form");
+            var make_trans_form = document.getElementById("make_trans_form");
+            var ed_trans_form = document.getElementById("ed_trans_form");
+
+            function select(el_id){
+                el = document.getElementById(el_id);
+                if(selected == el){
+
+                    selected.style.backgroundColor = "white";
+
+                    selected = null;
+                    ed_acc_form.style.display = "none";
+                    make_acc_form.style.display = "table-cell";
+                    ed_trans_form.style.display = "none";
+                    make_trans_form.style.display = "table-cell";
+                }else if(el.className == "col"){
+                    if(selected != null){
+                        selected.style.backgroundColor = "white";
+                    }
+                    selected = el;
+                    selected.style.backgroundColor = "yellow";
+
+
+                    ed_acc_form.style.display = "table-cell";
+                    make_acc_form.style.display = "none";
+
+                    document.getElementById("editaccname").value = el.innerHTML;
+
+                    for(var i = 0; i < accounts.length; i++){
+                        if(document.getElementById("editaccname").value == accounts[i]["name"]){
+                            document.getElementById("editacctype").value = accounts[i]["type"];
+                            break
+                        }
+                    }
+
+                    ed_trans_form.style.display = "none";
+                    make_trans_form.style.display = "table-cell";
+                }else if(el.className == "row"){
+                    if(selected != null){
+                        selected.style.backgroundColor = "white";
+                    }
+                    selected = el;
+                    selected.style.backgroundColor = "yellow";
+
+                    ed_acc_form.style.display = "none";
+                    make_acc_form.style.display = "table-cell";
+
+                    make_trans_form.style.display = "none";
+                    ed_trans_form.style.display = "table-cell";
+
+                    var rownum = Number((selected.id).replace("row_",''))-1;
+                    console.log(rownum);
+
+                    document.getElementById("ed_acc1").value = transactions[rownum]["acc1"];
+                    document.getElementById("ed_trans1").value = transactions[rownum]["trans1"];
+
+                    document.getElementById("ed_acc2").value = transactions[rownum]["acc2"];
+                    document.getElementById("ed_trans2").value = transactions[rownum]["trans2"];
+
+                }
+            }
+
+            function edit_account(){
+                if(selected.className == "col"){
+                    for(var i = 0; i < accounts.length; i++){
+                        if(accounts[i]["name"] == selected.innerHTML){
+                            var oname = accounts[i]["name"];
+                            var nname = document.getElementById("editaccname").value;
+                            var ntype = document.getElementById("editacctype").value;
+
+                            accounts[i]["name"] = nname;
+                            if(ntype != accounts[i]["type"]){
+                                var acc = {
+                                    "name":nname,
+                                    "type":ntype
+                                };
+
+                                accounts.splice(i,1);
+
+                                if(ntype == "credit"){
+                                    accounts.push(acc);
+                                }else{
+                                    accounts.unshift(acc);
+                                }
+                            }
+
+                            for(var j = 0; j < transactions.length; j++){
+                                if(transactions[i]["acc1"] == oname){
+                                    transactions[i]["acc1"] = nname;
+                                }
+
+                                if(transactions[i]["acc2"] == oname){
+                                    transactions[i]["acc2"] = nname;
+                                }
+                            }
+
+                            break;
+                        }
+                    }
+
+                    
+                    select(selected.id);
+                    update_trans_select();
+                    update_table();
+                }
+            }
+
+            function delete_account(){
+                if(selected.className == "col"){
+                    if(window.confirm(`Are you sure you would like to delete the '${selected.innerHTML}' account?`)){
+                        for(var i = 0; i < accounts.length; i++){
+                            if(selected.innerHTML == accounts[i]["name"]){
+                                accounts.splice(i,1);
+
+                                var j = 0;
+                                while(j < transactions.length){
+                                    if(transactions[j]["acc1"] == selected.innerHTML || transactions[j]["acc2"] == selected.innerHTML){
+                                        transactions.splice(i,1)
+                                    }else{
+                                        j++;
+                                    }
+                                }
+
+                                select(selected.id);
+                                update_trans_select();
+                                update_table();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            function ed_trans(){
+                if(selected.className == "row"){
+                    var rownum = Number((selected.id).replace("row_",''))-1;
+                    transactions[rownum]["acc1"] = document.getElementById("ed_acc1").value;
+                    transactions[rownum]["acc2"] = document.getElementById("ed_acc2").value;
+                    transactions[rownum]["trans1"] = Number(document.getElementById("ed_trans1").value);
+                    transactions[rownum]["trans2"] = Number(document.getElementById("ed_trans2").value);
+
+                    select(selected.id);
+                    update_trans_select();
+                    update_table();
+                }
+            }
+
+            function delete_trans(){
+                if(selected.className == "row"){
+                    var rownum = Number((selected.id).replace("row_",''))-1;
+                    transactions.splice(rownum,1);
+
+                    select(selected.id);
+                    update_trans_select();
+                    update_table();
+                }
+            }
+
+            //update_table();
+        </script>
+    </body>
+</html>
